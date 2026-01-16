@@ -36,3 +36,22 @@ pipeline {
     }
   }
 }
+post {
+  always {
+    emailext(
+      subject: "Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+      body: """Hi,
+
+Build Status: ${currentBuild.currentResult}
+Job Name: ${env.JOB_NAME}
+Build Number: ${env.BUILD_NUMBER}
+Build URL: ${env.BUILD_URL}
+
+Regards,
+Jenkins
+""",
+      to: "saiteja07042004@gmail.com",
+      attachLog: true
+    )
+  }
+}
