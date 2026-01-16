@@ -1,51 +1,39 @@
-pipeline {
-  agent any
+node {
+  def buildResult = "SUCCESS"
 
-  stages {
+  try {
     stage('Checkout') {
-      steps {
-        git url: 'https://github.com/saiteja2k4/8.2CDevSecOps.git', branch: 'main'
-
-      }
+      checkout scm
     }
 
     stage('Install Dependencies') {
-      steps {
-        bat 'npm install'
-      }
+      bat 'npm install'
     }
 
     stage('Run Tests') {
-      steps {
-        // don’t fail the whole build if snyk isn’t authenticated
-        bat 'npm test || exit /b 0'
-      }
-    }
-
-    stage('Generate Coverage Report') {
-      steps {
-        // nodejs-goof may not have coverage script; don’t fail build
-        bat 'npm run coverage || exit /b 0'
-      }
+      // Don't fail build if snyk not authenticated
+      bat 'npm test || exit /b 0'
     }
 
     stage('NPM Audit (Security Scan)') {
-      steps {
-        bat 'npm audit || exit /b 0'
-      }
+      // Don't fail build, but show vulnerabilities in console
+      bat 'npm audit || exit /b 0'
     }
-  }
-}
-post {
-  always {
+
+  } catch (err) {
+    buildResult = "FAILURE"
+    currentBuild.result = "FAILURE"
+    throw err
+  } finally {
+    // EMAIL ALWAYS (success or failure)
     emailext(
       subject: "Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
       body: """Hi,
 
 Build Status: ${currentBuild.currentResult}
-Job Name: ${env.JOB_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Build URL: ${env.BUILD_URL}
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_NUMBER}
+URL: ${env.BUILD_URL}
 
 Regards,
 Jenkins
